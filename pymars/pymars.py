@@ -97,7 +97,8 @@ def parse_inputs(input_dict):
         assert sp in gas.species_names, f'Specified retained species {sp} not in model'
     
     ignition_conditions = input_dict.get('autoignition-conditions', {})
-    assert ignition_conditions, 'autoignition-conditions need to be specified'
+    # Commenting out the assertion to make way for the pyrolysis functionality.
+    #assert ignition_conditions, 'autoignition-conditions need to be specified'
 
     psr_conditions = input_dict.get('psr-conditions', {})
     flame_conditions = input_dict.get('laminar-flame-conditions', {})
