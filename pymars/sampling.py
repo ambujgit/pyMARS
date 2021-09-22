@@ -36,6 +36,16 @@ class InputIgnition(NamedTuple):
 class InputPSR(NamedTuple):
     """Holds input parameters for single PSR simulation.
     """
+    kind: str
+    temperature: float
+    pressure: float
+
+    end_time: float = 0.0
+    max_steps: int = 10000
+
+    fuel: Dict = {}
+    reactants: Dict = {}
+    composition_type: str = 'mole'
 
 
 class InputLaminarFlame(NamedTuple):
@@ -482,7 +492,7 @@ def parse_psr_inputs(model, conditions, phase_name=''):
             pre + 'composition-type: must be mole when specifying fuel'
             )
         
-        inputs.append(InputIgnition(
+        inputs.append(InputPSR(
             kind, temperature, pressure, end_time, max_steps,
             fuel, reactants, composition_type
         ))
