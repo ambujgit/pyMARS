@@ -68,6 +68,7 @@ def simulation_worker(sim_tuple):
         Object with simulation metadata
 
     """
+    
     sim, stop_at_ignition = sim_tuple
 
     sim.setup_case()
@@ -361,14 +362,14 @@ def sample(model, ignition_conditions, psr_conditions=[], flame_conditions=[],
             simulations = []
             for idx, case in enumerate(psr_conditions):
                 simulations.append([
-                    Simulation_psr(idx, case, model, phase_name=phase_name, path=path)
+                    Simulation_Psr(idx, case, model, phase_name=phase_name, path=path)
                     ])
 
-            #jobs = tuple(simulations)
-            #if num_threads == 1:
-                #results = []
-                #for job in jobs:
-                    #results.append(simulation_worker(job))
+            jobs = tuple(simulations)
+            if num_threads == 1:
+                results = []
+                for job in jobs:
+                    results.append(simulation_worker(job))
             #else:
                 #pool = multiprocessing.Pool(processes=num_threads)
                 #results = pool.map(simulation_worker, jobs)
