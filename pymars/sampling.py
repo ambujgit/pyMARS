@@ -433,7 +433,61 @@ def parse_psr_inputs(model, conditions, phase_name=''):
         List of validated objects with PSR input parameters
 
     """
-    return None
+    gas = ct.Solution(model, phase_name)
+    
+    inputs = []
+    for idx, case in enumerate(conditions):
+        pre = f'PSR input {idx}: '
+        
+        # check required keys        
+        kind = case.get('kind', '')
+        temperature = case.get('temperature', 0.0)
+        pressure = case.get('pressure', 0.0)
+
+        assert kind in ['constant volume', 'constant pressure'], (
+            pre + '"case" needs to be "constant volume" or "constant pressure'
+            )
+        assert temperature > 0.0, pre + '"temperature" needs to be > 0'
+        assert pressure > 0.0, pre + '"pressure" needs to be a number > 0'
+
+        end_time = case.get('end-time', 0)
+        max_steps = case.get('max-steps', 10000)
+        
+        fuel = case.get('fuel', [])
+        
+        reactants = case.get('reactants', [])
+
+        assert (bool(fuel) + bool(reactants)) == 1, (
+            pre + 'should specify either fuel or reactants.'
+            )
+        
+        if fuel:
+            assert fuel, pre + 'needs "fuel" with at least one entry'
+            for entry in fuel:
+                assert fuel[entry] > 0, pre + entry + ' value needs to be a number > 0'
+                assert entry in gas.species_names, (
+                    pre + 'fuel species not in model: ' + entry
+                    )
+            
+        if reactants:
+            for entry in reactants:
+                assert reactants[entry] > 0, pre + entry + ' value needs to be a number > 0'
+                assert entry in gas.species_names, (
+                    pre + 'reactant not in model: ' + entry
+                    )
+        
+        composition_type = case.get('composition-type', 'mole')
+        assert composition_type in ['mole', 'mass'], pre + 'composition-type must be "mole" or "mass"'
+        assert not (composition_type == 'mass'), (
+            pre + 'composition-type: must be mole when specifying fuel'
+            )
+        
+        inputs.append(InputIgnition(
+            kind, temperature, pressure, end_time, max_steps,
+            fuel, reactants, composition_type
+        ))
+
+    return inputs
 
 
 def parse_flame_inputs(model, conditions, phase_name=''):
