@@ -331,7 +331,60 @@ def sample(model, ignition_conditions, psr_conditions=[], flame_conditions=[],
             np.savetxt(data_files['output_ignition'], ignition_delays, delimiter=',')
 
     if psr_conditions:
-        raise NotImplementedError('PSR calculations not currently supported.')
+        psr_metrics = np.zeros(len(psr_conditions))
+        psr_data = []
+        
+        # check for presence of data and output files; if present, reuse.
+        matches_number = False
+        matches_shape = False
+        exists_data = os.path.isfile(data_files['data_psr'])
+        exists_output = os.path.isfile(data_files['output_psr'])
+        if exists_data and exists_output:
+            psr_metrics = np.genfromtxt(data_files['output_psr'], delimiter=',')
+            psr_data = np.genfromtxt(data_files['data_psr'], delimiter=',')
+            # need to check that saved data at least matches the number of cases
+            matches_number = (
+                psr_metrics.size == len(psr_conditions) and 
+                psr_data.shape[0] / 20 == len(psr_conditions)
+                )
+            
+            # also check that expected data is right shape (e.g., in case number of species 
+            # has changed if running a new model)
+            gas = ct.Solution(model, phase_name)
+            matches_shape = psr_data.shape[1] == 2 + gas.n_species
+        
+        if matches_number and matches_shape:
+            logging.info('Reusing existing psr samples for the starting model.')
+        else:
+            logging.info('Running psr simulations for starting model.')
+        
+            simulations = []
+            for idx, case in enumerate(psr_conditions):
+                simulations.append([
+                    Simulation_psr(idx, case, model, phase_name=phase_name, path=path)
+                    ])
+
+            #jobs = tuple(simulations)
+            #if num_threads == 1:
+                #results = []
+                #for job in jobs:
+                    #results.append(simulation_worker(job))
+            #else:
+                #pool = multiprocessing.Pool(processes=num_threads)
+                #results = pool.map(simulation_worker, jobs)
+                #pool.close()
+                #pool.join()
+
+            #psr_metrics = np.zeros(len(psr_conditions))
+            #psr_data = []     
+            #for idx, sim in enumerate(results):
+                #psr_metrics[idx], data = sim.process_results()
+                #psr_data += list(data)
+                #sim.clean()
+            #psr_data = np.array(psr_data)
+
+            #np.savetxt(data_files['data_psr'], psr_data, delimiter=',')
+            #np.savetxt(data_files['output_psr'], psr_metrics, delimiter=',')
     
     if flame_conditions:
         raise NotImplementedError('Laminar flame calculations not currently supported.')
