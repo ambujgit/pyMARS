@@ -102,8 +102,9 @@ def parse_inputs(input_dict):
 
     psr_conditions = input_dict.get('psr-conditions', {})
     flame_conditions = input_dict.get('laminar-flame-conditions', {})
-    if psr_conditions:
-        raise NotImplementedError('PSR sampling not implemented yet, sorry!')
+    # commenting out the following if conditional statement.
+    #if psr_conditions:
+    #    raise NotImplementedError('PSR sampling not implemented yet, sorry!')
     if flame_conditions:
         raise NotImplementedError('Laminar flame sampling not implemented yet, sorry!')
 
