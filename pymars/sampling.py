@@ -9,7 +9,7 @@ import ruamel_yaml as yaml
 import cantera as ct
 
 from .simulation import Simulation
-from .Simulation_psr import Simulation_Psr
+from .simulation_psr import Simulation_Psr
 
 data_files = {
     'data_ignition': 'ignition_data.dat', 'output_ignition': 'ignition_output.txt',
