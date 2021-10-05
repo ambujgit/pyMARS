@@ -213,10 +213,6 @@ class Simulation_Psr(object):
             # Write ``table`` to disk
             table.flush()
 
-            if not ignition_flag:
-                logging.error(f'No ignition detected for ignition case {self.idx}')
-                raise RuntimeError(f'No ignition detected for ignition case {self.idx}')
-
         return self.ignition_delay
 
     def calculate_ignition(self):

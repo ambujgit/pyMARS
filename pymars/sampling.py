@@ -78,6 +78,30 @@ def simulation_worker(sim_tuple):
     sim = Simulation(sim.idx, sim.properties, sim.model, phase_name=sim.phase_name, path=sim.path)
     return sim
 
+def simulation_psr_worker(sim_tuple):
+    """Worker for multiprocessing of psr simulation cases.
+
+    Parameters
+    ----------
+    sim_tuple : tuple
+        Contains Simulation object and other parameters needed to setup
+        and run case.
+
+    Returns
+    -------
+    sim : Simulation
+        Object with simulation metadata
+
+    """
+    
+    sim, stop_at_time = sim_tuple
+
+    sim.setup_case()
+    sim.run_case(stop_at_time)
+
+    sim = Simulation_Psr(sim.idx, sim.properties, sim.model, phase_name=sim.phase_name, path=sim.path)
+    return sim
+
 
 def ignition_worker(sim_tuple):
     """Worker for multiprocessing of ignition delay only cases.
@@ -359,23 +383,23 @@ def sample(model, ignition_conditions, psr_conditions=[], flame_conditions=[],
             logging.info('Reusing existing psr samples for the starting model.')
         else:
             logging.info('Running psr simulations for starting model.')
-        
+            stop_at_time = False
             simulations = []
             for idx, case in enumerate(psr_conditions):
                 simulations.append([
-                    Simulation_Psr(idx, case, model, phase_name=phase_name, path=path)
+                    Simulation_Psr(idx, case, model, phase_name=phase_name, path=path), stop_at_time
                     ])
 
             jobs = tuple(simulations)
             if num_threads == 1:
                 results = []
                 for job in jobs:
-                    results.append(simulation_worker(job))
-            #else:
-                #pool = multiprocessing.Pool(processes=num_threads)
-                #results = pool.map(simulation_worker, jobs)
-                #pool.close()
-                #pool.join()
+                    results.append(simulation_psr_worker(job))
+            else:
+                pool = multiprocessing.Pool(processes=num_threads)
+                results = pool.map(simulation_worker, jobs)
+                pool.close()
+                pool.join()
 
             #psr_metrics = np.zeros(len(psr_conditions))
             #psr_data = []     
