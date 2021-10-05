@@ -89,7 +89,7 @@ class Simulation_Psr(object):
         """Run simulation case set up ``setup_case``.
 
         If no end time is specified for the integration, the function integrates
-        to steady state (or a maximum of 10,000 steps, by default). This is done
+        to steady state (or a maximum of 1000 steps, by default). This is done
         by checking whether the system state changes below a certain threshold,
         with the residual computed using feature checking. This is blatantly stolen
         from Cantera's :meth:`cantera.ReactorNet.advance_to_steady_state` method.
@@ -138,7 +138,7 @@ class Simulation_Psr(object):
             timestep['mass_fractions'] = self.reac.Y
             # Add ``timestep`` to table
             timestep.append()
-            ##########################################33############ UPTO HEREEEEEEEEEEEEEEE
+            
             ignition_flag = False
 
             # Main time integration loop
@@ -153,12 +153,12 @@ class Simulation_Psr(object):
                     timestep['pressure'] = self.reac.thermo.P
                     timestep['mass_fractions'] = self.reac.Y
 
-                    if self.reac.T >= self.properties.temperature + 400.0 and not ignition_flag:
-                        self.ignition_delay = self.sim.time
-                        ignition_flag = True
+                    #if self.reac.T >= self.properties.temperature + 400.0 and not ignition_flag:
+                    #    self.ignition_delay = self.sim.time
+                    #    ignition_flag = True
 
-                        if stop_at_ignition:
-                            break
+                    #    if stop_at_ignition:
+                    #        break
 
                     # Add ``timestep`` to table
                     timestep.append()
@@ -213,7 +213,7 @@ class Simulation_Psr(object):
             # Write ``table`` to disk
             table.flush()
 
-        return self.ignition_delay
+        #return self.ignition_delay
 
     def calculate_ignition(self):
         """Run simulation case set up ``setup_case``, just for ignition delay.
@@ -272,11 +272,17 @@ class Simulation_Psr(object):
             temperatures = table.col('temperature')
             pressures = table.col('pressure')
             mass_fractions = table.col('mass_fractions')
-
+        
+        time_initial = times[0]
+        time_max = times[len(times)-1]
+        time_diff = time_max - time_initial
         temperature_initial = temperatures[0]
         temperature_max = temperatures[len(temperatures)-1]
         temperature_diff = temperature_max - temperature_initial 
-
+        
+        # 2D array 20*(2+species) shape. This will be used for sampling 
+        # 20 points over the time and storing the solution state at that 
+        # time.
         sampled_data = np.zeros((len(deltas), 2 + mass_fractions.shape[1]))
 
         # need to add processing to get the 20 data points here
@@ -286,13 +292,20 @@ class Simulation_Psr(object):
         for time, temp, pres, mass in zip(
             times, temperatures, pressures, mass_fractions
             ):
-            if temp >= temperature_initial + 400.0 and not ignition_flag:
-                    self.ignition_delay = time
-                    ignition_flag = True
-                    if skip_data:
-                        return self.ignition_delay
+            # Obtain indexes of the species I am interested in and return 
+            # their mass fractions in place of ignition delay. The length 
+            # list will be 20*(number of targets+2)
             
-            if temp >= temperature_initial + (deltas[idx] * temperature_diff):
+            
+            #if temp >= temperature_initial + 400.0 and not ignition_flag:
+                    #self.ignition_delay = time
+                    #ignition_flag = True
+                    #if skip_data:
+                        #return self.ignition_delay
+            # Here a time condition should be implemented.
+            # For example: time >= time_initial + (deltas[idx] * time_diff):
+            # IGNITION DELAY TO BE CHANGED TO OUTPUT_PSR
+            if time >= time_initial + (deltas[idx] * time_diff):
                 sampled_data[idx, 0:2] = [temp, pres]
                 sampled_data[idx, 2:] = mass
 
@@ -300,6 +313,14 @@ class Simulation_Psr(object):
                 if idx == 20:
                     self.sampled_data = sampled_data
                     return self.ignition_delay, sampled_data
+            #if temp >= temperature_initial + (deltas[idx] * temperature_diff):
+                #sampled_data[idx, 0:2] = [temp, pres]
+                #sampled_data[idx, 2:] = mass
+
+                #idx += 1
+                #if idx == 20:
+                    #self.sampled_data = sampled_data
+                    #return self.ignition_delay, sampled_data
 
     def clean(self):
         """Delete HDF5 file with full integration data.

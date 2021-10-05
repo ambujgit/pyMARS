@@ -95,7 +95,7 @@ def simulation_psr_worker(sim_tuple):
     """
     
     sim, stop_at_time = sim_tuple
-
+    
     sim.setup_case()
     sim.run_case(stop_at_time)
 
@@ -267,7 +267,7 @@ def sample(model, ignition_conditions, psr_conditions=[], flame_conditions=[],
            ):
     """Samples thermochemical data and generates metrics for various phenomena.
 
-    Initially, supports autoignition delay only.
+    Initially, supports autoignition delay and psr conditions independently.
 
     Parameters
     ----------
@@ -344,7 +344,7 @@ def sample(model, ignition_conditions, psr_conditions=[], flame_conditions=[],
                 results = pool.map(simulation_worker, jobs)
                 pool.close()
                 pool.join()
-
+            
             ignition_delays = np.zeros(len(ignition_conditions))
             ignition_data = []     
             for idx, sim in enumerate(results):
@@ -355,8 +355,10 @@ def sample(model, ignition_conditions, psr_conditions=[], flame_conditions=[],
 
             np.savetxt(data_files['data_ignition'], ignition_data, delimiter=',')
             np.savetxt(data_files['output_ignition'], ignition_delays, delimiter=',')
+        return ignition_delays, ignition_data
 
     if psr_conditions:
+        
         psr_metrics = np.zeros(len(psr_conditions))
         psr_data = []
         
@@ -385,11 +387,13 @@ def sample(model, ignition_conditions, psr_conditions=[], flame_conditions=[],
             logging.info('Running psr simulations for starting model.')
             stop_at_time = False
             simulations = []
+            
+            # Append the simulation class objects with conditions for running the simulations.
             for idx, case in enumerate(psr_conditions):
                 simulations.append([
                     Simulation_Psr(idx, case, model, phase_name=phase_name, path=path), stop_at_time
                     ])
-
+            
             jobs = tuple(simulations)
             if num_threads == 1:
                 results = []
@@ -401,21 +405,20 @@ def sample(model, ignition_conditions, psr_conditions=[], flame_conditions=[],
                 pool.close()
                 pool.join()
 
-            #psr_metrics = np.zeros(len(psr_conditions))
-            #psr_data = []     
-            #for idx, sim in enumerate(results):
-                #psr_metrics[idx], data = sim.process_results()
-                #psr_data += list(data)
-                #sim.clean()
-            #psr_data = np.array(psr_data)
+            psr_metrics = np.zeros(len(psr_conditions))
+            psr_data = []     
+            for idx, sim in enumerate(results):
+                psr_metrics[idx], data = sim.process_results()
+                psr_data += list(data)
+                sim.clean()
+            psr_data = np.array(psr_data)
 
-            #np.savetxt(data_files['data_psr'], psr_data, delimiter=',')
-            #np.savetxt(data_files['output_psr'], psr_metrics, delimiter=',')
+            np.savetxt(data_files['data_psr'], psr_data, delimiter=',')
+            np.savetxt(data_files['output_psr'], psr_metrics, delimiter=',')
+        return psr_metrics, psr_data
     
     if flame_conditions:
         raise NotImplementedError('Laminar flame calculations not currently supported.')
-    
-    return ignition_delays, ignition_data
 
 
 def parse_ignition_inputs(model, conditions, phase_name=''):

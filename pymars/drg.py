@@ -249,12 +249,12 @@ def run_drg(model_file, ignition_conditions, psr_conditions, flame_conditions,
     solution = ct.Solution(model_file, phase_name)
 
     assert species_targets, 'Need to specify at least one target species.'
-
+    
     # first, sample thermochemical data and generate metrics for measuring error
     # (e.g, ignition delays). Also produce adjacency matrices for graphs, which
     # will be used to produce graphs for any threshold value.
     sampled_metrics, sampled_data = sample(
-        model_file, ignition_conditions, phase_name=phase_name, num_threads=num_threads, path=path
+        model_file, ignition_conditions, psr_conditions, phase_name, num_threads=num_threads, path=path
         )
 
     matrices = []
