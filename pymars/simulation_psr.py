@@ -286,15 +286,15 @@ class Simulation_Psr(object):
         sampled_data = np.zeros((len(deltas), 2 + mass_fractions.shape[1]))
 
         # need to add processing to get the 20 data points here
-        self.ignition_delay = 0.0
+        output_psr = np.zeros((len(deltas), mass_fractions.shape[1]))
         ignition_flag = False
         idx = 0
         for time, temp, pres, mass in zip(
             times, temperatures, pressures, mass_fractions
             ):
             # Obtain indexes of the species I am interested in and return 
-            # their mass fractions in place of ignition delay. The length 
-            # list will be 20*(number of targets+2)
+            # their mass fractions as a list in place of ignition delay. 
+            # The length of the overall list will be 20*(number of targets+2)
             
             
             #if temp >= temperature_initial + 400.0 and not ignition_flag:
@@ -308,11 +308,13 @@ class Simulation_Psr(object):
             if time >= time_initial + (deltas[idx] * time_diff):
                 sampled_data[idx, 0:2] = [temp, pres]
                 sampled_data[idx, 2:] = mass
-
+                output_psr[idx, 0:] = mass
+                
                 idx += 1
                 if idx == 20:
                     self.sampled_data = sampled_data
-                    return self.ignition_delay, sampled_data
+                    self.output_psr = output_psr
+                    return self.output_psr, sampled_data
             #if temp >= temperature_initial + (deltas[idx] * temperature_diff):
                 #sampled_data[idx, 0:2] = [temp, pres]
                 #sampled_data[idx, 2:] = mass

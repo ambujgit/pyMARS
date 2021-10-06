@@ -405,10 +405,13 @@ def sample(model, ignition_conditions, psr_conditions=[], flame_conditions=[],
                 pool.close()
                 pool.join()
 
-            psr_metrics = np.zeros(len(psr_conditions))
+            #psr_metrics = np.zeros(len(psr_conditions))
+            psr_metrics = []
             psr_data = []     
             for idx, sim in enumerate(results):
-                psr_metrics[idx], data = sim.process_results()
+                #psr_metrics[idx], data = sim.process_results()
+                metrics, data = sim.process_results()
+                psr_metrics += list(metrics)
                 psr_data += list(data)
                 sim.clean()
             psr_data = np.array(psr_data)
