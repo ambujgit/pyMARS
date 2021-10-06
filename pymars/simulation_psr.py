@@ -343,7 +343,15 @@ class Simulation_Psr(object):
                 #if idx == 20:
                     #self.sampled_data = sampled_data
                     #return self.ignition_delay, sampled_data
-
+    
+    def get_imp_species(self):
+        """Reads in the h5 file and returns a list of 
+        target species and species need to be retained.
+        Applicable for psr cases only as of now.
+        CREATE A h5 file in pymars.py file.
+        """
+        
+    
     def clean(self):
         """Delete HDF5 file with full integration data.
         """
