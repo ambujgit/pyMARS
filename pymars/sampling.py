@@ -122,6 +122,24 @@ def ignition_worker(sim_tuple):
     ignition_delay = sim.calculate_ignition()
     return {idx: ignition_delay}
 
+def psr_worker(sim_tuple):
+    """Worker for multiprocessing of psr only cases.
+
+    Parameters
+    ----------
+    sim_tuple : tuple
+        Tuple of Simulation object to be run and identifier
+
+    Returns
+    -------
+    dict
+        Case identifier and calculated psr output
+
+    """
+    sim, idx = sim_tuple
+    sim.setup_case()
+    psr_output = sim.calculate_profiles()
+    return {idx: psr_output}
 
 def calculate_error(metrics_original, metrics_test):
     """Calculates error of global metrics between test and original model.
@@ -181,7 +199,7 @@ def read_metrics(ignition_conditions, psr_conditions=[], flame_conditions=[]):
     return ignition_delays
 
 
-def sample_metrics(model, ignition_conditions, psr_conditions=[], flame_conditions=[],
+def sample_metrics(model, ignition_conditions, psr_conditions, flame_conditions=[],
                    phase_name='', num_threads=1, path='', reuse_saved=False
                    ):
     """Evaluates metrics used for determining error of reduced model
@@ -252,14 +270,45 @@ def sample_metrics(model, ignition_conditions, psr_conditions=[], flame_conditio
             ignition_delays = np.zeros(len(results))
             for idx, ignition_delay in results.items():
                 ignition_delays[idx] = ignition_delay
+        return ignition_delays
         
     if psr_conditions:
-        raise NotImplementedError('PSR calculations not currently supported.')
+        psr_outputs = np.zeros(len(psr_conditions))
+        
+        exists_output = os.path.isfile(data_files['output_psr'])
+        if reuse_saved and exists_output:
+            psr_outputs = np.genfromtxt(data_files['output_psr'], delimiter=',')
+        
+        if reuse_saved and len(psr_outputs) == len(psr_conditions):
+            logging.info('Reusing existing autoignition samples for the starting model.')
+        else:
+            simulations = []
+            for idx, case in enumerate(psr_conditions):
+                simulations.append([
+                    Simulation_Psr(idx, case, model, phase_name=phase_name, path=path), idx
+                    ])
+
+            jobs = tuple(simulations)
+            if num_threads == 1:
+                results = []
+                for job in jobs:
+                    results.append(psr_worker(job))
+            else:
+                pool = multiprocessing.Pool(processes=num_threads)
+                results = pool.map(psr_worker, jobs)
+                pool.close()
+                pool.join()
+
+            results = {key:val for k in results for key, val in k.items()}
+            psr_outputs = np.zeros(len(results))
+            for idx, psr_output in results.items():
+                psr_outputs[idx] = psr_output
+        return psr_outputs
     
     if flame_conditions:
         raise NotImplementedError('Laminar flame calculations not currently supported.')
 
-    return ignition_delays
+    #return ignition_delays
 
 
 def sample(model, ignition_conditions, psr_conditions=[], flame_conditions=[],

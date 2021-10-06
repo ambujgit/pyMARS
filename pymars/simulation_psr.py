@@ -214,37 +214,62 @@ class Simulation_Psr(object):
             table.flush()
 
         #return self.ignition_delay
-
-    def calculate_ignition(self):
-        """Run simulation case set up ``setup_case``, just for ignition delay.
+    
+    def calculate_profiles(self):
+        """Run simulation case set up ``setup_case``, just for psr output.
         """        
         # Main time integration loop
+        times = []
+        temperatures = []
+        pressures = []
+        mass_fractions = []
         if self.time_end:
             # if end time specified, continue integration until reaching that time
             while self.sim.time < self.time_end:
                 self.sim.step()
-                if self.reac.T >= self.properties.temperature + 400.0:
-                    self.ignition_delay = self.sim.time
-                    break
-            if not self.ignition_delay:
-                logging.warning(
-                    f'No ignition detected before end time for ignition case {self.idx}'
-                    )
+                times.append(self.sim.time)
+                temperatures.append(self.reac.T)
+                pressures.append(self.reac.thermo.P)
+                mass_fractions.append(self.reac.Y)
         else:
             # otherwise, integrate until steady state, or maximum number of steps reached
             for step in range(self.max_steps):
                 self.sim.step()
-                if self.reac.T >= self.properties.temperature + 400.0:
-                    self.ignition_delay = self.sim.time
-                    break
+                times.append(self.sim.time)
+                temperatures.append(self.reac.T)
+                pressures.append(self.reac.thermo.P)
+                mass_fractions.append(self.reac.Y)
             if step == self.max_steps - 1:
                 logging.warning(
                     'Maximum number of steps reached before '
                     f'convergence for ignition case {self.idx}'
                     )
+        delta = 0.05
+        deltas = np.arange(delta, 1 + delta, delta)
+        
+        time_initial = times[0]
+        time_max = times[len(times)-1]
+        time_diff = time_max - time_initial
+        temperature_initial = temperatures[0]
+        temperature_max = temperatures[len(temperatures)-1]
+        temperature_diff = temperature_max - temperature_initial 
 
-        return self.ignition_delay
-
+        # need to add processing to get the 20 data points here
+        output_psr = np.zeros((len(deltas), len(mass_fractions)))
+        
+        idx = 0
+        for time, temp, pres, mass in zip(
+            times, temperatures, pressures, mass_fractions
+            ):
+            
+            if time >= time_initial + (deltas[idx] * time_diff):
+                output_psr[idx, 0:] = mass
+                
+                idx += 1
+                if idx == 20:
+                    self.output_psr = output_psr
+        return output_psr
+    
     def process_results(self, skip_data=False):
         """Process integration results to sample data
 
@@ -287,7 +312,7 @@ class Simulation_Psr(object):
 
         # need to add processing to get the 20 data points here
         output_psr = np.zeros((len(deltas), mass_fractions.shape[1]))
-        ignition_flag = False
+        
         idx = 0
         for time, temp, pres, mass in zip(
             times, temperatures, pressures, mass_fractions
@@ -295,13 +320,8 @@ class Simulation_Psr(object):
             # Obtain indexes of the species I am interested in and return 
             # their mass fractions as a list in place of ignition delay. 
             # The length of the overall list will be 20*(number of targets+2)
-            
-            
-            #if temp >= temperature_initial + 400.0 and not ignition_flag:
-                    #self.ignition_delay = time
-                    #ignition_flag = True
-                    #if skip_data:
-                        #return self.ignition_delay
+            # THE PROBLEM NOW IS TO GET THESE IMP SPECIES AND PASS THEM TO 
+            # CALCULATE ERROR TOO AGAINST THE REDUCED MODEL.
             # Here a time condition should be implemented.
             # For example: time >= time_initial + (deltas[idx] * time_diff):
             # IGNITION DELAY TO BE CHANGED TO OUTPUT_PSR

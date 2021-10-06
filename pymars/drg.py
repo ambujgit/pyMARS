@@ -117,7 +117,7 @@ def trim_drg(matrix, species_names, species_targets, threshold):
 
 
 def reduce_drg(model_file, species_targets, species_safe, threshold, 
-               matrices, ignition_conditions, sampled_metrics, 
+               matrices, ignition_conditions, psr_conditions, sampled_metrics, 
                phase_name='', previous_model=None, threshold_upper=None, 
                num_threads=1, path=''
                ):
@@ -137,6 +137,8 @@ def reduce_drg(model_file, species_targets, species_safe, threshold,
         List of DRG adjacency matrices determined from thermochemical state data
     ignition_conditions : list of InputIgnition
         List of autoignition initial conditions.
+    psr_conditions : list of InputPSR
+        List of psr initial conditions.
     sampled_metrics: numpy.ndarray
         Global metrics from original model used to evaluate error
     phase_name : str, optional
@@ -185,7 +187,7 @@ def reduce_drg(model_file, species_targets, species_safe, threshold,
         )
 
     reduced_model_metrics = sample_metrics(
-        reduced_model_filename, ignition_conditions, phase_name=phase_name, 
+        reduced_model_filename, ignition_conditions, psr_conditions, phase_name=phase_name, 
         num_threads=num_threads, path=path
         )
     error = calculate_error(sampled_metrics, reduced_model_metrics)
@@ -276,7 +278,7 @@ def run_drg(model_file, ignition_conditions, psr_conditions, flame_conditions,
     while error_current <= error_limit:
         reduced_model = reduce_drg(
             model_file, species_targets, species_safe, threshold, matrices, 
-            ignition_conditions, sampled_metrics, 
+            ignition_conditions, psr_conditions, sampled_metrics, 
             phase_name=phase_name, previous_model=previous_model, 
             threshold_upper=threshold_upper, num_threads=num_threads, path=path
             )
