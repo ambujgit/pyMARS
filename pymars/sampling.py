@@ -99,7 +99,7 @@ def simulation_psr_worker(sim_tuple):
     sim.setup_case()
     sim.run_case(stop_at_time)
 
-    sim = Simulation_Psr(sim.idx, sim.properties, sim.model, phase_name=sim.phase_name, path=sim.path)
+    sim = Simulation_Psr(sim.idx, sim.properties, sim.model, phase_name=sim.phase_name, path=sim.path,species_targets=sim.species_targets, species_safe=sim.species_safe)
     return sim
 
 
@@ -200,7 +200,8 @@ def read_metrics(ignition_conditions, psr_conditions=[], flame_conditions=[]):
 
 
 def sample_metrics(model, ignition_conditions, psr_conditions, flame_conditions=[],
-                   phase_name='', num_threads=1, path='', reuse_saved=False
+                   phase_name='', num_threads=1, path='', reuse_saved=False,
+                   species_targets=[], species_safe=[]
                    ):
     """Evaluates metrics used for determining error of reduced model
 
@@ -285,7 +286,7 @@ def sample_metrics(model, ignition_conditions, psr_conditions, flame_conditions=
             simulations = []
             for idx, case in enumerate(psr_conditions):
                 simulations.append([
-                    Simulation_Psr(idx, case, model, phase_name=phase_name, path=path), idx
+                    Simulation_Psr(idx, case, model, phase_name=phase_name, path=path, species_targets=species_targets, species_safe=species_safe), idx
                     ])
 
             jobs = tuple(simulations)
@@ -311,8 +312,8 @@ def sample_metrics(model, ignition_conditions, psr_conditions, flame_conditions=
     #return ignition_delays
 
 
-def sample(model, ignition_conditions, psr_conditions=[], flame_conditions=[],
-           phase_name='', num_threads=1, path=''
+def sample(model, ignition_conditions, psr_conditions=[], flame_conditions=[]
+           , phase_name='', num_threads=1, path='', species_targets=[], species_safe=[]
            ):
     """Samples thermochemical data and generates metrics for various phenomena.
 
@@ -328,6 +329,10 @@ def sample(model, ignition_conditions, psr_conditions=[], flame_conditions=[],
         List of PSR simulation conditions.
     flame_conditions : list of InputLaminarFlame, optional
         List of laminar flame simulation conditions.
+    species_targets : list of str
+        List of target species names
+    species_safe : list of str
+        List of species names to always be retained
     phase_name : str, optional
         Optional name for phase to load from CTI file (e.g., 'gas'). 
     num_threads : int
@@ -440,7 +445,7 @@ def sample(model, ignition_conditions, psr_conditions=[], flame_conditions=[],
             # Append the simulation class objects with conditions for running the simulations.
             for idx, case in enumerate(psr_conditions):
                 simulations.append([
-                    Simulation_Psr(idx, case, model, phase_name=phase_name, path=path), stop_at_time
+                    Simulation_Psr(idx, case, model, phase_name=phase_name, path=path, species_targets=species_targets, species_safe=species_safe), stop_at_time
                     ])
             
             jobs = tuple(simulations)

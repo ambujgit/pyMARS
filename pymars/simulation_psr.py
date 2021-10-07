@@ -32,9 +32,11 @@ class Simulation_Psr(object):
         Path for location of output files
         
     """
-    def __init__(self, idx, properties, model, phase_name='', path=''):
+    def __init__(self, idx, properties, model, phase_name='', path='', species_targets=[], species_safe=[]):
         self.idx = idx
         self.properties = properties
+        self.species_targets = species_targets
+        self.species_safe = species_safe
         self.model = model
         self.phase_name = phase_name
         self.path = path
@@ -43,7 +45,7 @@ class Simulation_Psr(object):
         """Initialize simulation case.
         """
         self.gas = ct.Solution(self.model, self.phase_name)
-
+            
         # Default maximum number of steps
         self.max_steps = 10000
         if self.properties.max_steps:
@@ -84,6 +86,27 @@ class Simulation_Psr(object):
         self.sample_points = []
 
         self.psr_metrics = 0.0
+    
+    def get_target_fractions(self):
+        
+        target_fractions = []
+        for i in self.species_targets:
+            target_fractions.append(self.gas[i].Y)
+        target_fractions = np.array(target_fractions)
+        target_fractions = target_fractions.ravel()
+        
+        return target_fractions
+        
+    def get_retained_fractions(self):
+        
+        retained_fractions = []
+        for i in self.species_safe:
+            retained_fractions.append(self.gas[i].Y)
+        retained_fractions = np.array(retained_fractions)
+        retained_fractions = retained_fractions.ravel()
+        
+        return retained_fractions
+        
 
     def run_case(self, stop_time=False, restart=False):
         """Run simulation case set up ``setup_case``.
@@ -119,6 +142,12 @@ class Simulation_Psr(object):
                      'mass_fractions': tables.Float64Col(
                           shape=(self.reac.thermo.n_species), pos=3
                           ),
+                     'target_fractions': tables.Float64Col(
+                          shape=(len(self.species_targets)), pos=4
+                          ),
+                     'retained_fractions': tables.Float64Col(
+                          shape=(len(self.species_safe)), pos=5
+                          ),
                      }
 
         with tables.open_file(self.save_file, mode='w',
@@ -136,6 +165,8 @@ class Simulation_Psr(object):
             timestep['temperature'] = self.reac.T
             timestep['pressure'] = self.reac.thermo.P
             timestep['mass_fractions'] = self.reac.Y
+            timestep['target_fractions'] = self.get_target_fractions()
+            timestep['retained_fractions'] = self.get_retained_fractions()
             # Add ``timestep`` to table
             timestep.append()
             
@@ -152,6 +183,8 @@ class Simulation_Psr(object):
                     timestep['temperature'] = self.reac.T
                     timestep['pressure'] = self.reac.thermo.P
                     timestep['mass_fractions'] = self.reac.Y
+                    timestep['target_fractions'] = self.get_target_fractions()
+                    timestep['retained_fractions'] = self.get_retained_fractions()
 
                     #if self.reac.T >= self.properties.temperature + 400.0 and not ignition_flag:
                     #    self.ignition_delay = self.sim.time
@@ -180,6 +213,8 @@ class Simulation_Psr(object):
                     timestep['temperature'] = self.reac.T
                     timestep['pressure'] = self.reac.thermo.P
                     timestep['mass_fractions'] = self.reac.Y
+                    timestep['target_fractions'] = get_target_fractions()
+                    timestep['retained_fractions'] = get_retained_fractions()
 
                     if self.reac.T >= self.properties.temperature + 400.0 and not ignition_flag:
                         self.ignition_delay = self.sim.time
@@ -223,6 +258,9 @@ class Simulation_Psr(object):
         temperatures = []
         pressures = []
         mass_fractions = []
+        target_fractions = []
+        retained_fractions = []
+        
         if self.time_end:
             # if end time specified, continue integration until reaching that time
             while self.sim.time < self.time_end:
@@ -231,6 +269,8 @@ class Simulation_Psr(object):
                 temperatures.append(self.reac.T)
                 pressures.append(self.reac.thermo.P)
                 mass_fractions.append(self.reac.Y)
+                target_fractions.append(self.get_target_fractions())
+                retained_fractions.append(self.get_retained_fractions())
         else:
             # otherwise, integrate until steady state, or maximum number of steps reached
             for step in range(self.max_steps):
@@ -239,6 +279,8 @@ class Simulation_Psr(object):
                 temperatures.append(self.reac.T)
                 pressures.append(self.reac.thermo.P)
                 mass_fractions.append(self.reac.Y)
+                target_fractions.append(self.get_target_fractions())
+                retained_fractions.append(self.get_retained_fractions())
             if step == self.max_steps - 1:
                 logging.warning(
                     'Maximum number of steps reached before '
@@ -255,15 +297,15 @@ class Simulation_Psr(object):
         temperature_diff = temperature_max - temperature_initial 
 
         # need to add processing to get the 20 data points here
-        output_psr = np.zeros((len(deltas), len(mass_fractions)))
+        output_psr = np.zeros((len(deltas), len(self.get_target_fractions())+len(self.get_retained_fractions())))
         
         idx = 0
-        for time, temp, pres, mass in zip(
-            times, temperatures, pressures, mass_fractions
+        for time, temp, pres, mass, target, retained in zip(
+            times, temperatures, pressures, mass_fractions, target_fractions, retained_fractions
             ):
             
             if time >= time_initial + (deltas[idx] * time_diff):
-                output_psr[idx, 0:] = mass
+                output_psr[idx, 0:] = np.concatenate((target,retained), axis=None)
                 
                 idx += 1
                 if idx == 20:
@@ -286,7 +328,7 @@ class Simulation_Psr(object):
         """
         delta = 0.05
         deltas = np.arange(delta, 1 + delta, delta)
-
+        
         # Load saved integration results
         self.save_file = os.path.join(self.path, str(self.idx) + '.h5')
         with tables.open_file(self.save_file, 'r') as h5file:
@@ -297,6 +339,8 @@ class Simulation_Psr(object):
             temperatures = table.col('temperature')
             pressures = table.col('pressure')
             mass_fractions = table.col('mass_fractions')
+            target_fractions = table.col('target_fractions')
+            retained_fractions = table.col('retained_fractions')
         
         time_initial = times[0]
         time_max = times[len(times)-1]
@@ -311,11 +355,11 @@ class Simulation_Psr(object):
         sampled_data = np.zeros((len(deltas), 2 + mass_fractions.shape[1]))
 
         # need to add processing to get the 20 data points here
-        output_psr = np.zeros((len(deltas), mass_fractions.shape[1]))
+        output_psr = np.zeros((len(deltas), (target_fractions.shape[1]+retained_fractions.shape[1])))
         
         idx = 0
-        for time, temp, pres, mass in zip(
-            times, temperatures, pressures, mass_fractions
+        for time, temp, pres, mass, target, retained in zip(
+            times, temperatures, pressures, mass_fractions, target_fractions, retained_fractions
             ):
             # Obtain indexes of the species I am interested in and return 
             # their mass fractions as a list in place of ignition delay. 
@@ -328,7 +372,7 @@ class Simulation_Psr(object):
             if time >= time_initial + (deltas[idx] * time_diff):
                 sampled_data[idx, 0:2] = [temp, pres]
                 sampled_data[idx, 2:] = mass
-                output_psr[idx, 0:] = mass
+                output_psr[idx, 0:] = np.concatenate((target, retained), axis=None)
                 
                 idx += 1
                 if idx == 20:
@@ -343,13 +387,6 @@ class Simulation_Psr(object):
                 #if idx == 20:
                     #self.sampled_data = sampled_data
                     #return self.ignition_delay, sampled_data
-    
-    def get_imp_species(self):
-        """Reads in the h5 file and returns a list of 
-        target species and species need to be retained.
-        Applicable for psr cases only as of now.
-        CREATE A h5 file in pymars.py file.
-        """
         
     
     def clean(self):

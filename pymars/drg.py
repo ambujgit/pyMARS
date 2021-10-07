@@ -188,7 +188,7 @@ def reduce_drg(model_file, species_targets, species_safe, threshold,
 
     reduced_model_metrics = sample_metrics(
         reduced_model_filename, ignition_conditions, psr_conditions, phase_name=phase_name, 
-        num_threads=num_threads, path=path
+        num_threads=num_threads, path=path, species_targets=species_targets, species_safe=species_safe
         )
     error = calculate_error(sampled_metrics, reduced_model_metrics)
     
@@ -256,7 +256,8 @@ def run_drg(model_file, ignition_conditions, psr_conditions, flame_conditions,
     # (e.g, ignition delays). Also produce adjacency matrices for graphs, which
     # will be used to produce graphs for any threshold value.
     sampled_metrics, sampled_data = sample(
-        model_file, ignition_conditions, psr_conditions, phase_name, num_threads=num_threads, path=path
+        model_file, ignition_conditions, psr_conditions, phase_name,
+        num_threads=num_threads, path=path, species_targets=species_targets, species_safe=species_safe
         )
 
     matrices = []
