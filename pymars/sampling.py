@@ -157,6 +157,8 @@ def calculate_error(metrics_original, metrics_test):
         Maximum error over all metrics
     
     """
+    print(metrics_original)
+    print(metrics_test)
     error = 100 * np.max(np.abs(metrics_original - metrics_test) / metrics_original)
     # if any zero ignition delays, set error to 100
     if any(metrics_test == 0.0):
@@ -301,9 +303,14 @@ def sample_metrics(model, ignition_conditions, psr_conditions, flame_conditions=
                 pool.join()
 
             results = {key:val for k in results for key, val in k.items()}
-            psr_outputs = np.zeros(len(results))
+            #psr_outputs = np.zeros(len(results))             # original code
+            a = np.zeros(len(results[0][0]))
+            b = [a for i in range(20)]
+            b = np.array(b)
+            psr_outputs = [b for i in range(len(results))]
             for idx, psr_output in results.items():
                 psr_outputs[idx] = psr_output
+            #psr_outputs = list(psr_outputs[0]) + list(psr_outputs[1])
         return psr_outputs
     
     if flame_conditions:

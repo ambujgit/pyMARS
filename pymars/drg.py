@@ -259,7 +259,6 @@ def run_drg(model_file, ignition_conditions, psr_conditions, flame_conditions,
         model_file, ignition_conditions, psr_conditions, phase_name,
         num_threads=num_threads, path=path, species_targets=species_targets, species_safe=species_safe
         )
-
     matrices = []
     for state in sampled_data:
         matrices.append(create_drg_matrix((state[0], state[1], state[2:]), solution))
@@ -316,7 +315,7 @@ def run_drg(model_file, ignition_conditions, psr_conditions, flame_conditions,
         threshold -= (2 * threshold_increment)
         reduced_model = reduce_drg(
             model_file, species_targets, species_safe, threshold, matrices, 
-            ignition_conditions, sampled_metrics, phase_name=phase_name,
+            ignition_conditions, psr_conditions, sampled_metrics, phase_name=phase_name,
             threshold_upper=threshold_upper, num_threads=num_threads, path=path
             )
     else:
