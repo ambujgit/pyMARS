@@ -6,7 +6,7 @@ import numpy as np
 import cantera as ct
 
 from . import soln2cti
-from .sampling import sample, sample_metrics, calculate_error
+from .sampling import sample, sample_metrics, calculate_error, calculate_psr_error
 from .reduce_model import trim, ReducedModel
 
 
@@ -190,7 +190,10 @@ def reduce_drg(model_file, species_targets, species_safe, threshold,
         reduced_model_filename, ignition_conditions, psr_conditions, phase_name=phase_name, 
         num_threads=num_threads, path=path, species_targets=species_targets, species_safe=species_safe
         )
-    error = calculate_error(sampled_metrics, reduced_model_metrics)
+    if ignition_conditions:
+        error = calculate_error(sampled_metrics, reduced_model_metrics)
+    elif psr_conditions:
+        error = calculate_psr_error(sampled_metrics, reduced_model_metrics)
     
     # If desired, now identify limbo species for future sensitivity analysis
     limbo_species = []

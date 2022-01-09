@@ -157,13 +157,47 @@ def calculate_error(metrics_original, metrics_test):
         Maximum error over all metrics
     
     """
-    print(metrics_original)
-    print(metrics_test)
     error = 100 * np.max(np.abs(metrics_original - metrics_test) / metrics_original)
     # if any zero ignition delays, set error to 100
     if any(metrics_test == 0.0):
         error = 100.0
+    return error
 
+def calculate_psr_error(metrics_original, metrics_test):
+    """Calculates error of global metrics between test and original model.
+
+    Parameters
+    ----------
+    metrics_original : numpy.ndarray
+        Metrics serving as basis of error calculation. Obtained from sample function.
+    metrics_test : numpy.ndarray
+        Metrics for which error is being calculated with respect to ``metrics_original``
+        Obtained from sample_metrics function.
+
+    Returns
+    -------
+    error : float
+        Maximum error over all metrics
+    
+    """
+    
+    dummy_test = []
+    for i in range(len(metrics_test)):
+        dummy_test += list(metrics_test[i])
+    metrics_test = dummy_test
+    error_list = []
+    #print(np.abs(metrics_original[0] - metrics_test[0]) / metrics_original[0])
+    for i in range(len(metrics_test)):
+        error_list.append(np.zeros(len(metrics_original[i])))
+        error_list[i] = np.abs(metrics_original[i] - metrics_test[i]) / metrics_original[i]
+    net_error =  np.zeros(len(error_list))
+    for i in range(len(error_list)):
+        net_error[i] = np.max(error_list[i]) 
+    error = 100*np.max(net_error)
+    #error = 100 * np.max(np.abs(metrics_original - metrics_test) / metrics_original)
+    # if any zero psr concentratons, set error to 100
+    #if any(metrics_test == 0.0):
+        #error = 100.0
     return error
 
 
