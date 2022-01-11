@@ -496,7 +496,7 @@ def sample(model, ignition_conditions, psr_conditions=[], flame_conditions=[]
                     results.append(simulation_psr_worker(job))
             else:
                 pool = multiprocessing.Pool(processes=num_threads)
-                results = pool.map(simulation_worker, jobs)
+                results = pool.map(simulation_psr_worker, jobs)
                 pool.close()
                 pool.join()
 
